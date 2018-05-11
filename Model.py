@@ -55,7 +55,6 @@ class Model:
             
             self._weights = []
             for i in range(len(self._layers) - 1):
-                #initializer = tf.random_normal(shape=[self._layers[i], self._layers[i+1]], dtype=dtype, stddev=stddev)
                 initializer = tf.contrib.layers.xavier_initializer(dtype=dtype)
                 self._weights.append(tf.get_variable("w"+str(i), 
                                                      shape=[self._layers[i], self._layers[i+1]], 
@@ -63,7 +62,6 @@ class Model:
 
             self._biases = []
             for i in range(len(self._layers) - 1):
-                #initializer = tf.random_normal(shape=[self._layers[i+1]], dtype=dtype, stddev=stddev)
                 initializer = tf.zeros_initializer(dtype=dtype)
                 self._biases.append(tf.get_variable("b"+str(i), 
                                     shape=[self._layers[i+1]],
@@ -86,6 +84,10 @@ class Model:
     def model(self, x):
 
         return self._neuralNet(x)
+    
+    def _circlePhysics(self):
+        
+        pass
 
     
     def _bvpPhysics(self):
