@@ -3,4 +3,4 @@
 *.ipynb
 *.pdf
 *.pyc
-*cpython*
+__pycache/*
