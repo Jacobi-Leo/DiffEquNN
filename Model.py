@@ -28,6 +28,8 @@ class Model:
             self.physics = self._heatPhysics
         elif self.name == 'burgers' or self.name == 'Burgers' or self.name == "Burgers'":
             self.physics = self._burgersPhysics
+        elif self.name == 'circle':
+            self.physics = self._circlePhysics
         else:
             raise ValueError("Wrong name for model")
         
@@ -75,21 +77,36 @@ class Model:
         # acFun is activation function
         acFun = tf.tanh
 
-        layers = []
-        layers.append(x)
-        for i in range(len(self._layers) - 1):
-            layers.append(acFun(tf.matmul(layers[-1], self._weights[i]) + self._biases[i]))
+        layer = x
+        for i in range(len(self._layers) - 2):
+            layer = acFun(tf.matmul(layer, self._weights[i]) + self._biases[i])
             
-        return layers[-1]
+        layer = tf.matmul(layer, self._weights[-1]) + self._biases[-1]
+        return layer
 
 
     def model(self, x):
 
         return self._neuralNet(x)
     
+
     def _circlePhysics(self):
         
-        pass
+        func = lambda x: tf.reduce_mean(tf.square(x))
+        
+        t = self.varAux
+        u = self.model(t)
+        x, y = tf.split(u, 2, 1)
+        
+        xt = tf.gradients(x, t)[0]
+        yt = tf.gradients(y, t)[0]
+        
+        eq1 = xt - y * 2.0 * np.pi
+        eq2 = yt + x * 2.0 * np.pi
+        
+        cost = self.hypothesis - self.varOut
+        
+        return func(cost), func(eq1) + func(eq2)
 
 
     def _burgersPhysics(self):
