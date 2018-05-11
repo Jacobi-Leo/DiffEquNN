@@ -26,6 +26,8 @@ class Model:
             self.physics = self._bvpPhysics
         elif self.name == 'heat' or self.name == 'Heat' or self.name == 'HeatConduction':
             self.physics = self._heatPhysics
+        elif self.name == 'burgers' or self.name == 'Burgers' or self.name == "Burgers'":
+            self.physics = self._burgersPhysics
         else:
             raise ValueError("Wrong name for model")
         
@@ -86,6 +88,23 @@ class Model:
     def model(self, x):
 
         return self._neuralNet(x)
+
+
+    def _burgersPhysics(self):
+
+        func = lambda x: tf.reduce_mean(tf.square(x))
+        D = lambda y: tf.split(tf.gradients(y, self.varAux)[0], 2, 1)
+        xt = self.varAux
+        u = self.model(xt)
+
+        ut, ux = D(u)
+        _, uxx = D(ux)
+
+        deviation = ut + u * ux - self.nu * uxx
+
+        cost = self.hypothesis - self.varOut
+
+        return func(cost), func(deviation)
 
     
     def _bvpPhysics(self):
