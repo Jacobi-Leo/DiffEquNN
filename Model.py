@@ -22,13 +22,13 @@ class Model:
         
     def _setPhysics(self):
         
-        if self.name == 'bvp' or self.name == 'BVP':
+        if self.name in ['bvp', 'BVP']
             self.physics = self._bvpPhysics
-        elif self.name == 'heat' or self.name == 'Heat' or self.name == 'HeatConduction':
+        elif self.name in ['heat', 'Heat', 'HeatConduction']:
             self.physics = self._heatPhysics
-        elif self.name == 'burgers' or self.name == 'Burgers' or self.name == "Burgers'":
+        elif self.name in ['burgers', 'Burgers', "Burgers'"]:
             self.physics = self._burgersPhysics
-        elif self.name == 'circle':
+        elif self.name in ['circle', 'Circle']:
             self.physics = self._circlePhysics
         else:
             raise ValueError("Wrong name for model")
@@ -59,17 +59,24 @@ class Model:
             
             self._weights = []
             for i in range(len(self._layers) - 1):
-                initializer = tf.contrib.layers.xavier_initializer(dtype=dtype)
-                self._weights.append(tf.get_variable("w"+str(i), 
-                                                     shape=[self._layers[i], self._layers[i+1]], 
-                                                     initializer=initializer))
+                self._weights.append(
+                    tf.get_variable(
+                        "w"+str(i), 
+                        shape=[self._layers[i], self._layers[i+1]], 
+                        initializer=tf.contrib.layers.xavier_initializer(dtype=dtype),
+                    )
+                )
 
             self._biases = []
             for i in range(len(self._layers) - 1):
                 initializer = tf.zeros_initializer(dtype=dtype)
-                self._biases.append(tf.get_variable("b"+str(i),
-                                    shape=[self._layers[i+1]],
-                                    initializer=initializer))
+                self._biases.append(
+                    tf.get_variable(
+                        "b"+str(i),
+                        shape=[self._layers[i+1]],
+                        initializer=tf.zeros_initializer(dtype=dtype),
+                    )
+                )
 
 
     def _neuralNet(self, x):
@@ -206,7 +213,9 @@ class Model:
     def _gradient_train(self, feed, learning_rate=0.01):
         
         if not hasattr(self, 'optimizer'):
-            self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(self.loss)
+            self.optimizer = tf.train.GradientDescentOptimizer(
+                learning_rate=learning_rate,
+            ).minimize(self.loss)
         for step in range(self._num_steps + 1):
             c, _ = self.sess.run([self.loss, self.optimizer], feed_dict=feed)
             if step % 100 == 0:
@@ -220,13 +229,13 @@ class Model:
         equalities = [self.loss_model]
         if not hasattr(self, 'optimizer'):
             self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
-            self.regularization, 
-            equalities=equalities, 
-            method='SLSQP', 
-            options={
-                'maxiter': self._num_steps,
-                'disp': False,
-            },
+                self.regularization, 
+                equalities=equalities, 
+                method='SLSQP', 
+                options={
+                    'maxiter': self._num_steps,
+                    'disp': False,
+                },
             )
         self.optimizer.minimize(session=self.sess, feed_dict=feed)
         
