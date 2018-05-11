@@ -4,7 +4,7 @@ import tensorflow as tf
 dtype = tf.float32
 
 class Model:
-    
+
     def __init__(self, name, layers, penalty=1.0, num_steps=100000):
 
         self.sess = tf.Session()
@@ -65,7 +65,7 @@ class Model:
             for i in range(len(self._layers) - 1):
                 #initializer = tf.random_normal(shape=[self._layers[i+1]], dtype=dtype, stddev=stddev)
                 initializer = tf.zeros_initializer(dtype=dtype)
-                self._biases.append(tf.get_variable("b"+str(i), 
+                self._biases.append(tf.get_variable("b"+str(i),
                                     shape=[self._layers[i+1]],
                                     initializer=initializer))
 
