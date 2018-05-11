@@ -204,7 +204,7 @@ class Model:
         return
 
     def _gradient_train(self, feed, learning_rate=0.01):
-        '''Cautious: optimizer is local'''
+        
         if not hasattr(self, 'optimizer'):
             self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(self.loss)
         for step in range(self._num_steps + 1):
@@ -216,7 +216,6 @@ class Model:
         return
 
     def _constrained_train(self, feed):
-        '''Cautious: optimizer is local'''
 
         equalities = [self.loss_model]
         if not hasattr(self, 'optimizer'):
