@@ -1,19 +1,35 @@
+# %load bvp.py
 import numpy as np
-import tensorflow as tf
 import matplotlib.pyplot as plt
-
-import numpy as np
 
 from Model import Model
 
 l = [1, 20, 20, 20, 1]
-m = Model("bvp", l, 0.01)
+m = Model("bvp", l, 1.0, 50000)
+    
+epoches = 0
+batch_size = 10
+while True:
+    epoches = epoches + 1
+    m.train({
+        m.varIn: np.array([[0], [1]]),
+        m.varOut: np.array([[1], [0]]),
+        m.varAux: np.random.uniform(0.0, 1.0, batch_size).reshape(-1, 1),
+    })
+    c = m.sess.run(m.loss, {
+        m.varIn: np.array([[0], [1]]),
+        m.varOut: np.array([[1], [0]]),
+        m.varAux: np.random.uniform(0.0, 1.0, 10).reshape(-1, 1),
+    })
+    if c < 0.005:
+        print("Converge with Error =", c)
+        break
+    elif epoches > 100:
+        print("Fail to converge.")
+        break
+    else: 
+        print("Error =", c)
 
-m.train({
-    m.varIn: np.array([[0], [1]]),
-    m.varOut: np.array([[1], [0]]),
-    m.varAux: np.linspace(0.0, 1.0, 100).reshape(-1, 1),
-})
 
 def boundaryLayerFunction(x):
     nu = m.nu
