@@ -167,7 +167,9 @@ class Model:
             self._setNetworkVariables()
             self.hypothesis = self.model(self.varIn)
             self.loss_model, self.regularization = self.physics()
+            #self.loss = self.loss_model + self.regularization * self._penalty
             self.loss = self.loss_model + self.regularization * self._penalty
+
         return
 
     
@@ -186,27 +188,27 @@ class Model:
         return
     
     def _fast_train(self, feed):
-        '''Cautious: optimizer is local'''
 
-        optimizer = tf.contrib.opt.ScipyOptimizerInterface(
-            self.loss,
-            options={
-                'maxfun': self._num_steps,
-                'maxiter': self._num_steps,
-                'maxls': 50,
-                'maxcor': 50,
-            },
-        )
-        optimizer.minimize(session=self.sess, feed_dict=feed)
+        if not hasattr(self, 'optimizer'):
+            self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
+                self.loss,
+                options={
+                    'maxfun': self._num_steps,
+                    'maxiter': self._num_steps,
+                    'maxls': 50,
+                    'maxcor': 50,
+                },
+            )
+            
+        self.optimizer.minimize(session=self.sess, feed_dict=feed)
         return
 
     def _gradient_train(self, feed, learning_rate=0.01):
         '''Cautious: optimizer is local'''
-
-        optimizer = tf.train.GradientDescentOptimizer(
-            learning_rate=learning_rate).minimize(self.loss)
+        if not hasattr(self, 'optimizer'):
+            self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(self.loss)
         for step in range(self._num_steps + 1):
-            c, _ = self.sess.run([self.loss, optimizer], feed_dict=feed)
+            c, _ = self.sess.run([self.loss, self.optimizer], feed_dict=feed)
             if step % 100 == 0:
                 print("step =", step, "cost =", c)
             if c < self.tol:
@@ -217,16 +219,16 @@ class Model:
         '''Cautious: optimizer is local'''
 
         equalities = [self.loss_model]
-        optimizer = tf.contrib.opt.ScipyOptimizerInterface(
+        if not hasattr(self, 'optimizer'):
+            self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
             self.regularization, 
             equalities=equalities, 
             method='SLSQP', 
             options={
                 'maxiter': self._num_steps,
-                'ftol': self.tol,
                 'disp': False,
             },
-        )
-        optimizer.minimize(session=self.sess, feed_dict=feed)
+            )
+        self.optimizer.minimize(session=self.sess, feed_dict=feed)
         
         return
