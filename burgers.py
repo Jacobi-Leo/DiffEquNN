@@ -8,7 +8,7 @@ from BurgersData import getBody, getBoundary
 import dataBurgers2 as dt
 
 l = [2, 20, 20, 20, 20, 20, 1]
-m = Model("burgers", layers=l, penalty=2000.0, num_steps=50000)
+m = Model("burgers", layers=l, penalty=2.0, num_steps=50000)
 
 num_epoch = 0
 batch_size = 1000

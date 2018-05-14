@@ -8,6 +8,7 @@ class Model:
 
     def __init__(self, name, layers, penalty=1.0, num_steps=100000, debug=False):
 
+        self.reduceFunc = lambda x: tf.reduce_mean(tf.square(x))
         self.sess = tf.Session()
         self.name = name
         self._penalty = 0.5 * penalty
@@ -104,9 +105,7 @@ class Model:
     
 
     def _circlePhysics(self):
-        
-        func = lambda x: tf.reduce_mean(tf.square(x))
-        
+                
         t = self.varAux
         u = self.model(t)
         x, y = tf.split(u, 2, 1)
@@ -119,12 +118,11 @@ class Model:
         
         cost = self.hypothesis - self.varOut
         
-        return func(cost), func(eq1) + func(eq2)
+        return self.reduceFunc(cost), self.reduceFunc(eq1) + self.reduceFunc(eq2)
 
 
     def _burgersPhysics(self):
 
-        func = lambda x: tf.reduce_mean(tf.square(x))
         D = lambda y: tf.split(tf.gradients(y, self.varAux)[0], 2, 1)
         
         pi = tf.constant(np.pi, dtype=dtype)
@@ -138,12 +136,11 @@ class Model:
 
         cost = self.hypothesis - self.varOut
 
-        return func(cost), func(deviation)
+        return self.reduceFunc(cost), self.reduceFunc(deviation)
 
     
     def _bvpPhysics(self):
 
-        func = lambda x: tf.reduce_mean(tf.square(x))
         self.nu = 0.1
         x = self.varAux
         u = self.model(x)
@@ -155,12 +152,11 @@ class Model:
 
         cost = self.hypothesis - self.varOut
 
-        return func(cost), func(deviation)
+        return self.reduceFunc(cost), self.reduceFunc(deviation)
     
     
     def _heatPhysics(self):
         
-        func = lambda x: tf.reduce_mean(tf.square(x))
         u = self.model(self.varAux)
         D = lambda y: tf.split(tf.gradients(y, self.varAux)[0], 2, 1)
         
@@ -172,12 +168,11 @@ class Model:
 
         cost = self.hypothesis - self.varOut
        
-        return func(cost), func(deviation)
+        return self.reduceFunc(cost), self.reduceFunc(deviation)
 
     
     def _cavityPhysics(self):
 
-        reduceFunc = lambda x: tf.reduce_mean(tf.square(x))
         D = lambda y: tf.split(tf.gradients(y, self.varAux)[0], 2, 1)
 
         self.nu = 1.0 / 200.0
@@ -227,9 +222,15 @@ class Model:
         cost2 = vv - v_ref
 
         return (
-            reduceFunc(cost1) + reduceFunc(cost2), 
-            reduceFunc(deviation0) + reduceFunc(deviation1) + reduceFunc(deviation2),
+            self.reduceFunc(cost1) + self.reduceFunc(cost2), 
+            self.reduceFunc(deviation0) + self.reduceFunc(deviation1) + \
+                self.reduceFunc(deviation2),
             )
+
+
+    def _cavityPhysics2(self):
+
+        pass
 
 
     def _buildNet(self):
