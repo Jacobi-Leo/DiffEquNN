@@ -32,6 +32,8 @@ class Model:
             self.physics = self._burgersPhysics
         elif self.name in ['circle', 'Circle']:
             self.physics = self._circlePhysics
+        elif self.name in ['cavity', 'Cavity', 'DrivenCavity']:
+            self.physics = self._cavityPhysics
         else:
             raise ValueError("Wrong name for model")
         
@@ -237,8 +239,11 @@ class Model:
             self.loss_model, self.regularization = self.physics()
             a = self.loss_model
             b = self.regularization
-            w = self._penalty
-            self.loss = a + b * w
+            # w = self._penalty
+            # self.loss = a + b * w
+            # self.loss = tf.sqrt(tf.square(a) + tf.square(b))
+            self.loss = tf.square(a) + tf.square(b)
+            # self.loss = a * b / (a + b)
 
     
     def eval(self, feed):

@@ -8,7 +8,7 @@ from BurgersData import getBody, getBoundary
 import dataBurgers2 as dt
 
 l = [2, 20, 20, 20, 20, 20, 1]
-m = Model("burgers", layers=l, penalty=200.0, num_steps=50000)
+m = Model("burgers", layers=l, penalty=2000.0, num_steps=50000)
 
 num_epoch = 0
 batch_size = 1000
@@ -36,7 +36,8 @@ while True:
     # })
     # c = m.convergence[-1][0]
 
-    if c < 0.0005:
+    #if c < 5e-4:
+    if c < 1e-7:
         print("Converged!")
         break
     elif num_epoch > max_epoch:
