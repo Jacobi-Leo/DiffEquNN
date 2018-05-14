@@ -171,6 +171,62 @@ class Model:
        
         return func(cost), func(deviation)
 
+    
+    def _cavityPhysics(self):
+
+        reduceFunc = lambda x: tf.reduce_mean(tf.square(x))
+        D = lambda y: tf.split(tf.gradients(y, self.varAux)[0], 2, 1)
+
+        u, v, p = tf.split(self.model(self.varAux), 3, 1)
+
+        ux, uy = D(u)
+        vx, vy = D(v)
+        px, py = D(p)
+
+        uxx, _ = D(ux)
+        _, uyy = D(uy)
+
+        vxx, _ = D(vx)
+        _, vyy = D(vy)
+
+        deviation0 = ux + vy
+        deviation1 = u * ux + v * uy + px - self.nu * (uxx + uyy)
+        deviation2 = u * vx + v * vy + py - self.nu * (vxx + vyy)
+
+        tmp = np.linspace(0.0, 1.0, 100)
+
+        x = np.concatenate((
+            np.linspace(0.0, 1.0, 100),
+            np.ones(100),
+            np.linspace(0.0, 1.0, 100),
+            np.zeros(100),
+        ))
+
+        y = np.concatenate((
+            np.ones(100),
+            np.linspace(0.0, 1.0, 100),
+            np.zeros(100),
+            np.linspace(0.0, 1.0, 100),
+        ))
+
+        u_ref = np.concatenate((
+            16.0 * np.square(tmp) * np.square(1.0 - tmp),
+            np.zeros(300)
+        ))
+
+        v_ref = np.zeros(400)
+
+        var = tf.stack([x, y], axis=1)
+        uu, vv, _ = tf.split(self.model(var), 3, 1)
+
+        cost1 = uu - u_ref
+        cost2 = vv - v_ref
+
+        return (
+            reduceFunc(cost1) + reduceFunc(cost2), 
+            reduceFunc(deviation0) + reduceFunc(deviation1) + reduceFunc(deviation2),
+            )
+
 
     def _buildNet(self):
 
@@ -201,7 +257,7 @@ class Model:
     
     def _fast_train(self, feed):
 
-        if not hasattr(self, 'optimizer') and self.debug:
+        if not hasattr(self, 'optimizer'):
             self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
                 self.loss,
                 options={
@@ -218,10 +274,15 @@ class Model:
                 session=self.sess, 
                 feed_dict=feed,
                 fetches=[self.loss, self.loss_model, self.regularization],
-                loss_callback = self.callback,
+                loss_callback = self.callback_debug,
             )
         else:
-            self.optimizer.minimize(session=self.sess, feed_dict=feed)
+            self.optimizer.minimize(
+                session=self.sess, 
+                feed_dict=feed,
+                fetches=[self.loss, self.loss_model, self.regularization],
+                loss_callback = self.callback,
+            )
         return
 
     def _gradient_train(self, feed, learning_rate=0.01):
@@ -255,5 +316,11 @@ class Model:
         
         return
 
+
     def callback(self, loss, loss_model, regularization):
         self.convergence.append((loss, loss_model, regularization))
+
+    
+    def callback_debug(self, loss, loss_model, regularization):
+        self.convergence.append((loss, loss_model, regularization))
+        print("loss = ", loss, "loss_model = ", loss_model, "regularization = ", regularization)
