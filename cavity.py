@@ -1,14 +1,13 @@
 from Model import Model
 
 import numpy as np
-import tensorflow as tf
 import matplotlib.pyplot as plt
 
 def getBody(N):
 
     return np.random.uniform(size=N), np.random.uniform(size=N)
 
-l = [2, 20, 20, 20, 20, 3]
+l = [2, 40, 40, 40, 3]
 m = Model("cavity", layers=l, penalty=200.0, num_steps=50000)
 
 num_epoch = 0
@@ -21,9 +20,9 @@ while True:
     m.train({
         m.varAux: np.stack(getBody(batch_size), axis=1),
     }, method="L-BFGS-B")
-    c = m.convergence[-1][0]
+    c = m.convergence[-1]
 
-    if c < 0.0005:
+    if c[0] < 0.0005:
         print("Converged!")
         break
     elif num_epoch > max_epoch:

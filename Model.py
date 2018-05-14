@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 dtype = tf.float32
+npdtype = np.float32
 
 class Model:
 
@@ -179,6 +180,7 @@ class Model:
         reduceFunc = lambda x: tf.reduce_mean(tf.square(x))
         D = lambda y: tf.split(tf.gradients(y, self.varAux)[0], 2, 1)
 
+        self.nu = 1.0 / 200.0
         u, v, p = tf.split(self.model(self.varAux), 3, 1)
 
         ux, uy = D(u)
@@ -195,28 +197,28 @@ class Model:
         deviation1 = u * ux + v * uy + px - self.nu * (uxx + uyy)
         deviation2 = u * vx + v * vy + py - self.nu * (vxx + vyy)
 
-        tmp = np.linspace(0.0, 1.0, 100)
+        tmp = np.linspace(0.0, 1.0, 100, dtype=npdtype)
 
-        x = np.concatenate((
-            np.linspace(0.0, 1.0, 100),
-            np.ones(100),
-            np.linspace(0.0, 1.0, 100),
-            np.zeros(100),
-        ))
+        x = tf.concat((
+            np.linspace(0.0, 1.0, 100, dtype=npdtype),
+            np.ones(100, dtype=npdtype),
+            np.linspace(0.0, 1.0, 100, dtype=npdtype),
+            np.zeros(100, dtype=npdtype),
+        ), axis=0)
 
-        y = np.concatenate((
-            np.ones(100),
-            np.linspace(0.0, 1.0, 100),
-            np.zeros(100),
-            np.linspace(0.0, 1.0, 100),
-        ))
+        y = tf.concat((
+            np.ones(100, dtype=npdtype),
+            np.linspace(0.0, 1.0, 100, dtype=npdtype),
+            np.zeros(100, dtype=npdtype),
+            np.linspace(0.0, 1.0, 100, dtype=npdtype),
+        ), axis=0)
 
-        u_ref = np.concatenate((
+        u_ref = tf.concat((
             16.0 * np.square(tmp) * np.square(1.0 - tmp),
-            np.zeros(300)
-        ))
+            np.zeros(300, dtype=npdtype)
+        ), axis=0)
 
-        v_ref = np.zeros(400)
+        v_ref = tf.zeros(400, dtype=dtype)
 
         var = tf.stack([x, y], axis=1)
         uu, vv, _ = tf.split(self.model(var), 3, 1)
