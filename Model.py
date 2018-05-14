@@ -5,7 +5,7 @@ dtype = tf.float32
 
 class Model:
 
-    def __init__(self, name, layers, penalty=1.0, num_steps=100000):
+    def __init__(self, name, layers, penalty=1.0, num_steps=100000, debug=False):
 
         self.sess = tf.Session()
         self.name = name
@@ -17,12 +17,14 @@ class Model:
         self._num_input = self._layers[0]
         self._setPhysics()
         self._buildNet()
+        self.debug = debug
+        self.convergence = []
         self.sess.run(tf.global_variables_initializer())
         
         
     def _setPhysics(self):
         
-        if self.name in ['bvp', 'BVP']
+        if self.name in ['bvp', 'BVP']:
             self.physics = self._bvpPhysics
         elif self.name in ['heat', 'Heat', 'HeatConduction']:
             self.physics = self._heatPhysics
@@ -63,18 +65,19 @@ class Model:
                     tf.get_variable(
                         "w"+str(i), 
                         shape=[self._layers[i], self._layers[i+1]], 
-                        initializer=tf.contrib.layers.xavier_initializer(dtype=dtype),
+                        dtype=dtype,
+                        initializer=tf.contrib.layers.xavier_initializer(),
                     )
                 )
 
             self._biases = []
             for i in range(len(self._layers) - 1):
-                initializer = tf.zeros_initializer(dtype=dtype)
                 self._biases.append(
                     tf.get_variable(
                         "b"+str(i),
                         shape=[self._layers[i+1]],
-                        initializer=tf.zeros_initializer(dtype=dtype),
+                        dtype=dtype,
+                        initializer=tf.contrib.layers.xavier_initializer(),
                     )
                 )
 
@@ -120,13 +123,15 @@ class Model:
 
         func = lambda x: tf.reduce_mean(tf.square(x))
         D = lambda y: tf.split(tf.gradients(y, self.varAux)[0], 2, 1)
-        xt = self.varAux
-        u = self.model(xt)
+        
+        pi = tf.constant(np.pi, dtype=dtype)
+        tx = self.varAux
+        u = self.model(tx)
 
         ut, ux = D(u)
         _, uxx = D(ux)
 
-        deviation = ut + u * ux - self.nu * uxx
+        deviation = ut + u * ux - 0.01/pi * uxx
 
         cost = self.hypothesis - self.varOut
 
@@ -174,10 +179,10 @@ class Model:
             self._setNetworkVariables()
             self.hypothesis = self.model(self.varIn)
             self.loss_model, self.regularization = self.physics()
-            #self.loss = self.loss_model + self.regularization * self._penalty
-            self.loss = self.loss_model + self.regularization * self._penalty
-
-        return
+            a = self.loss_model
+            b = self.regularization
+            w = self._penalty
+            self.loss = a + b * w
 
     
     def eval(self, feed):
@@ -196,18 +201,27 @@ class Model:
     
     def _fast_train(self, feed):
 
-        if not hasattr(self, 'optimizer'):
+        if not hasattr(self, 'optimizer') and self.debug:
             self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
                 self.loss,
                 options={
-                    'maxfun': self._num_steps,
+                    #'maxfun': self._num_steps,
                     'maxiter': self._num_steps,
                     'maxls': 50,
                     'maxcor': 50,
+                    'disp': False,
                 },
             )
             
-        self.optimizer.minimize(session=self.sess, feed_dict=feed)
+        if self.debug:
+            self.optimizer.minimize(
+                session=self.sess, 
+                feed_dict=feed,
+                fetches=[self.loss, self.loss_model, self.regularization],
+                loss_callback = self.callback,
+            )
+        else:
+            self.optimizer.minimize(session=self.sess, feed_dict=feed)
         return
 
     def _gradient_train(self, feed, learning_rate=0.01):
@@ -240,3 +254,6 @@ class Model:
         self.optimizer.minimize(session=self.sess, feed_dict=feed)
         
         return
+
+    def callback(self, loss, loss_model, regularization):
+        self.convergence.append((loss, loss_model, regularization))
