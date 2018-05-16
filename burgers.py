@@ -36,8 +36,8 @@ while True:
     # })
     # c = m.convergence[-1][0]
 
-    #if c < 5e-4:
-    if c < 1e-7:
+    if c < 5e-4:
+    #if c < 1e-7:
         print("Converged!")
         break
     elif num_epoch > max_epoch:
