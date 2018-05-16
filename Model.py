@@ -38,6 +38,8 @@ class Model:
             self.physics = self._cavityPhysics
         elif self.name in ['cavity2']:
             self.physics = self._cavityPhysics2
+        elif self.name in ['cavity3', 'vortcity-stream-cavity']:
+            self.physics = self._cavityPhysics3
         else:
             raise ValueError("Wrong name for model")
         
@@ -744,6 +746,62 @@ class Model:
         cost2 = vv - v_ref
 
         return self.reduceFunc(cost1) + self.reduceFunc(cost2), L0 + L1 + L2
+
+
+    def _cavityPhysics3(self):
+
+        D = lambda y: tf.split(tf.gradients(y, self.varAux)[0], 2, 1)
+
+        self.nu = 1.0 / 200.0
+        p, o = tf.split(self.model(self.varAux), 2, 1)
+
+        px, py = D(p)
+        ox, oy = D(o)
+
+        pxx, _ = D(px)
+        _, pyy = D(py)
+
+        oxx, _ = D(ox)
+        _, oyy = D(oy)
+
+        deviation1 = pxx + pyy + o
+        deviation2 = py*ox - px*oy - self.nu*(oxx+oyy)
+
+        tmp = np.linspace(0.0, 1.0, 100, dtype=npdtype)
+
+        x = tf.concat((
+            np.linspace(0.0, 1.0, 100, dtype=npdtype),
+            np.ones(100, dtype=npdtype),
+            np.linspace(0.0, 1.0, 100, dtype=npdtype),
+            np.zeros(100, dtype=npdtype),
+        ), axis=0)
+
+        y = tf.concat((
+            np.ones(100, dtype=npdtype),
+            np.linspace(0.0, 1.0, 100, dtype=npdtype),
+            np.zeros(100, dtype=npdtype),
+            np.linspace(0.0, 1.0, 100, dtype=npdtype),
+        ), axis=0)
+
+        u_ref = tf.concat((
+            16.0 * np.square(tmp) * np.square(1.0 - tmp),
+            np.zeros(300, dtype=npdtype)
+        ), axis=0)
+
+        v_ref = tf.zeros(400, dtype=tfdtype)
+
+        var = tf.stack([x, y], axis=1)
+        psi, _ = tf.split(self.model(var), 2, 1)
+
+        vv_, uu = tf.split(tf.gradients(psi, var)[0], 2, 1)
+        vv = - vv_
+
+        cost1 = uu - u_ref
+        cost2 = vv - v_ref
+
+        return (
+            self.reduceFunc(cost1) + self.reduceFunc(cost2), 
+            self.reduceFunc(deviation1) + self.reduceFunc(deviation2),)
 
 
     def _buildNet(self):
